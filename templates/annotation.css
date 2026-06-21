@@ -1,65 +1,73 @@
-/* 标注大师 1.0.8 — 浮层 CSS */
-/* done 状态：角标+清单#标签+气泡#标签 全链路绿色 */
-
-/* === 浮层容器 === */
-#am-overlay{position:fixed;inset:0;pointer-events:none;z-index:99999}
+/* 标注大师 1.1.5 — 智能tooltip定位(防截断) + scope隔离 */
+/* tooltip 用 opacity:0 替代 visibility:hidden，保留可测量性 */
 
 /* === 角标 === */
-.am-badge{position:absolute;width:22px;height:22px;background:#FF4D4F;color:#fff;border-radius:50%;font-size:11px;font-weight:700;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 6px rgba(255,77,79,0.45);transition:transform 0.2s cubic-bezier(0.34,1.56,0.64,1);user-select:none;line-height:1;letter-spacing:0;pointer-events:auto;z-index:1}
-.am-badge:hover{transform:scale(1.3);z-index:100}
-.am-badge.pinned{background:#1890FF;box-shadow:0 2px 8px rgba(24,144,255,0.5);transform:scale(1.15);z-index:100}
+.am-badge{position:fixed;width:22px;height:22px;background:#FF4D4F;color:#fff;border-radius:50%;font-size:11px;font-weight:700;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 6px rgba(255,77,79,0.45);transition:transform 0.2s cubic-bezier(0.34,1.56,0.64,1);user-select:none;line-height:1;letter-spacing:0;z-index:99999}
+.am-num{pointer-events:none}
+.am-badge:hover{transform:scale(1.3);z-index:100001}
+.am-badge.pinned{background:#1890FF;box-shadow:0 2px 8px rgba(24,144,255,0.5);transform:scale(1.15);z-index:100001}
 .am-badge.done{background:#19AD68;box-shadow:0 2px 6px rgba(25,173,104,0.45)}
 .am-badge.done.pinned{background:#0F8A52;box-shadow:0 2px 8px rgba(15,138,82,0.5)}
 .am-badge.flash{animation:am-flash 0.6s ease-in-out 3}
 @keyframes am-flash{0%,100%{box-shadow:0 0 0 0 rgba(255,77,79,0.6)}50%{box-shadow:0 0 0 10px rgba(255,77,79,0)}}
 
-/* === Tooltip — JS控制坐标，CSS仅样式+箭头 === */
-.am-tooltip{position:absolute;background:#fff;color:#333;padding:10px 14px;border-radius:8px;font-size:13px;font-weight:400;line-height:1.6;white-space:normal;word-break:break-word;min-width:200px;max-width:320px;box-shadow:0 6px 20px rgba(0,0,0,0.15),0 0 0 1px rgba(0,0,0,0.05);pointer-events:none;opacity:0;visibility:hidden;transition:opacity 0.2s ease,visibility 0.2s ease;z-index:200}
+/* === Tooltip — V1.1.5: visibility:visible 保留可测量，opacity控制显隐 === */
+.am-tooltip{position:absolute;top:100%;left:50%;transform:translateX(-50%);margin-top:8px;background:#fff;color:#333;padding:12px 14px;border-radius:8px;font-size:13px;font-weight:400;line-height:1.7;white-space:pre-line;word-break:break-word;overflow-wrap:anywhere;min-width:220px;max-width:min(340px,calc(100vw - 60px));box-shadow:0 6px 20px rgba(0,0,0,0.15),0 0 0 1px rgba(0,0,0,0.05);pointer-events:none;opacity:0;visibility:visible;transition:opacity 0.2s ease;z-index:200}
+.am-tooltip::after{content:'';position:absolute;bottom:100%;left:50%;transform:translateX(-50%);border:7px solid transparent;border-bottom-color:#fff}
+/* hover/pin 显示 */
+.am-badge:hover .am-tooltip,.am-badge.pinned .am-tooltip{opacity:1;pointer-events:auto}
 
-/* 箭头 — 默认向下指（tooltip在badge上方） */
-.am-tooltip::after{content:'';position:absolute;top:100%;left:50%;transform:translateX(-50%);border:7px solid transparent;border-top-color:#fff}
+/* JS 方向微调 */
+.am-tooltip.up{top:auto;bottom:100%;margin-top:0;margin-bottom:8px}
+.am-tooltip.up::after{bottom:auto;top:100%;border-bottom-color:transparent;border-top-color:#fff}
+.am-tooltip.right{top:50%;left:100%;transform:translateY(-50%);margin-top:0;margin-left:8px}
+.am-tooltip.right::after{bottom:auto;left:auto;top:50%;right:100%;transform:translateY(-50%);border-bottom-color:transparent;border-right-color:#fff}
+.am-tooltip.left{top:50%;left:auto;right:100%;transform:translateY(-50%);margin-top:0;margin-right:8px}
+.am-tooltip.left::after{bottom:auto;left:100%;top:50%;transform:translateY(-50%);border-bottom-color:transparent;border-left-color:#fff}
 
-/* 向下弹出（tooltip在badge下方），箭头向上指 */
-.am-tooltip.down::after{top:auto;bottom:100%;border-top-color:transparent;border-bottom-color:#fff}
-
-/* 向右弹出（tooltip在badge右侧），箭头向左指 */
-.am-tooltip.right::after{top:50%;left:auto;right:100%;transform:translateY(-50%);border-top-color:transparent;border-right-color:#fff}
-
-/* 向左弹出（tooltip在badge左侧），箭头向右指 */
-.am-tooltip.left::after{top:50%;left:100%;transform:translateY(-50%);border-top-color:transparent;border-left-color:#fff}
-
-/* 显示 */
-.am-badge:hover .am-tooltip,.am-badge.pinned .am-tooltip{opacity:1;visibility:visible;pointer-events:auto}
 .am-tooltip .am-tooltip-id{display:inline-block;background:#FF4D4F;color:#fff;border-radius:3px;padding:1px 6px;font-size:11px;font-weight:700;margin-right:6px;vertical-align:middle}
 .am-badge.done .am-tooltip-id{background:#19AD68}
 .am-tooltip .am-close{position:absolute;top:6px;right:10px;cursor:pointer;font-size:15px;color:#bbb;line-height:1;pointer-events:auto;z-index:10}
 .am-tooltip .am-close:hover{color:#333}
 
 /* === 面板 === */
-#am-panel-toggle{position:fixed;bottom:24px;right:24px;width:48px;height:48px;background:#FF4D4F;color:#fff;border-radius:50%;font-size:20px;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:100000;box-shadow:0 4px 14px rgba(255,77,79,0.4);border:none;outline:none;transition:transform 0.2s ease,background 0.2s ease;line-height:1;padding:0;pointer-events:auto}
+#am-panel-toggle{position:fixed;bottom:24px;right:24px;width:48px;height:48px;background:#FF4D4F;color:#fff;border-radius:50%;font-size:20px;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:100002;box-shadow:0 4px 14px rgba(255,77,79,0.4);border:none;outline:none;transition:transform 0.2s ease,background 0.2s ease;line-height:1;padding:0}
 #am-panel-toggle:hover{transform:scale(1.1)}
 #am-panel-toggle.open{background:#333;box-shadow:0 4px 14px rgba(0,0,0,0.3)}
-#am-panel{position:fixed;top:0;right:0;width:380px;max-width:90vw;height:100vh;height:100dvh;background:#fff;box-shadow:-4px 0 24px rgba(0,0,0,0.12);z-index:100001;transform:translateX(100%);transition:transform 0.3s cubic-bezier(0.4,0,0.2,1);display:flex;flex-direction:column;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;pointer-events:auto}
+#am-panel{position:fixed;top:0;right:0;width:380px;max-width:90vw;height:100vh;height:100dvh;background:#fff;box-shadow:-4px 0 24px rgba(0,0,0,0.12);z-index:100003;transform:translateX(100%);transition:transform 0.3s cubic-bezier(0.4,0,0.2,1);display:flex;flex-direction:column;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif}
 #am-panel.open{transform:translateX(0)}
 #am-panel-header{padding:20px 24px 16px;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
 #am-panel-header h3{margin:0;font-size:16px;font-weight:600;color:#333}
 #am-panel-count{background:#FF4D4F;color:#fff;border-radius:10px;padding:2px 10px;font-size:12px;font-weight:600}
 #am-panel-page-label{font-size:12px;color:#999;margin-left:8px}
-#am-panel-list{flex:1;overflow-y:auto;padding:8px 24px}
+.am-panel-item .am-item-content{font-size:13px;color:#333;margin-top:4px;line-height:1.5;white-space:pre-line}
+/* V1.1.7: 面板编辑/删除按钮 */
+.am-item-top{display:flex;align-items:center;gap:6px}
+.am-item-location{font-size:12px;color:#999;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.am-item-actions{display:flex;gap:4px;flex-shrink:0}
+.am-btn-edit,.am-btn-del{width:26px;height:26px;border:1px solid #e8e8e8;border-radius:6px;background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;padding:0;line-height:1;transition:.15s}
+.am-btn-edit:hover{background:#edf5ff;border-color:#91c2ff}
+.am-btn-del:hover{background:#fff1f3;border-color:#ffb8bf}
+/* 编辑区 — 8px安全边距 */
+.am-edit-wrap{margin:8px 0 0;padding:0;display:flex;flex-direction:column;gap:8px}
+.am-edit-ta{width:100%;min-height:60px;max-height:200px;border:1px solid #c8d2e6;border-radius:6px;padding:8px 10px;font-size:12px;line-height:1.6;resize:vertical;font-family:inherit;outline:none;white-space:pre-wrap;overflow-y:auto;box-sizing:border-box}
+.am-edit-ta:focus{border-color:#6882f4;box-shadow:0 0 0 3px rgba(77,97,243,.08)}
+.am-edit-btns{display:flex;gap:6px;justify-content:flex-end}
+.am-edit-save{height:28px;padding:0 14px;border-radius:6px;background:#4d61f3;color:#fff;border:0;cursor:pointer;font-size:12px;font-weight:500}
+.am-edit-cancel{height:28px;padding:0 14px;border-radius:6px;background:#fff;color:#5e6b87;border:1px solid #d5dcec;cursor:pointer;font-size:12px}
 .am-panel-item{padding:14px 0;border-bottom:1px solid #f5f5f5;cursor:pointer;transition:background 0.15s ease}
 .am-panel-item:last-child{border-bottom:none}
 .am-panel-item:hover{background:#fafafa;margin:0 -24px;padding:14px 24px}
-.am-panel-item .am-item-id{display:inline-block;background:#FF4D4F;color:#fff;border-radius:3px;padding:2px 8px;font-size:11px;font-weight:700;margin-right:8px;vertical-align:middle}
-.am-panel-item .am-item-location{font-size:12px;color:#999;margin-top:6px}
+.am-panel-item .am-item-id{display:inline-block;background:#FF4D4F;color:#fff;border-radius:3px;padding:2px 8px;font-size:11px;font-weight:700;margin-right:8px;vertical-align:middle;flex-shrink:0}
 .am-panel-item.done .am-item-id{background:#19AD68}
-.am-panel-item.done .am-item-location{text-decoration:line-through;color:#bbb}
-/* 状态圆点 */
 .am-status-dot{font-size:10px;margin-right:6px;color:#FF4D4F;flex-shrink:0}
 .am-status-dot.done{color:#19AD68}
-.am-panel-item .am-item-content{font-size:13px;color:#333;margin-top:4px;line-height:1.5}
-#am-overlay-bg{position:fixed;inset:0;background:rgba(0,0,0,0.25);z-index:100000;opacity:0;visibility:hidden;transition:opacity 0.3s ease,visibility 0.3s ease;pointer-events:auto}
+.am-status-dot{font-size:10px;margin-right:6px;color:#FF4D4F;flex-shrink:0}
+.am-status-dot.done{color:#19AD68}
+.am-panel-item .am-item-content{font-size:13px;color:#333;margin-top:4px;line-height:1.5;white-space:pre-line}
+#am-overlay-bg{position:fixed;inset:0;background:rgba(0,0,0,0.25);z-index:100001;opacity:0;visibility:hidden;transition:opacity 0.3s ease,visibility 0.3s ease}
 #am-overlay-bg.visible{opacity:1;visibility:visible}
-#am-scroll-top{position:fixed;bottom:84px;right:28px;width:36px;height:36px;background:#fff;border-radius:50%;box-shadow:0 2px 10px rgba(0,0,0,0.12);display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:99997;font-size:16px;color:#666;opacity:0;visibility:hidden;transition:all 0.2s ease;border:1px solid #eee;line-height:1;pointer-events:auto}
+#am-scroll-top{position:fixed;bottom:84px;right:28px;width:36px;height:36px;background:#fff;border-radius:50%;box-shadow:0 2px 10px rgba(0,0,0,0.12);display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:99997;font-size:16px;color:#666;opacity:0;visibility:hidden;transition:all 0.2s ease;border:1px solid #eee;line-height:1}
 #am-scroll-top.visible{opacity:1;visibility:visible}
 #am-scroll-top:hover{color:#333;border-color:#ccc}
-@media(max-width:480px){#am-panel{width:100vw;max-width:100vw}.am-tooltip{min-width:150px;max-width:240px;font-size:12px}}
+@media(max-width:480px){#am-panel{width:100vw;max-width:100vw}.am-tooltip{min-width:160px;max-width:260px;font-size:12px}}
