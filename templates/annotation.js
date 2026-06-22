@@ -1,4 +1,4 @@
-// 标注大师 1.1.7 — 角标删除+编辑(会话级) + 四方向全判满 + scope隔离 + fixed直定位 + 宽元素左置
+// 标注大师 1.1.8 — 稳定编辑抽屉 + 动态页面重扫 + 通用页面/scope隔离
 (function () {
   'use strict';
 
@@ -6,12 +6,15 @@
   var badges = {};
   var targets = {};
   var pinnedId = null;
+  var activePage = 'global';
   var activeScope = 'customers';
   var ticking = false;
 
-  // V1.1.7: 会话级状态（刷新恢复）
+  // V1.1.8: 会话级状态（刷新恢复）
   var deletedIds = {};
   var editedContent = {};
+  var editingId = null;
+  var panelRenderSignature = '';
 
   function getContent(a) {
     return editedContent[a.id] != null ? editedContent[a.id] : a.content;
@@ -19,7 +22,7 @@
 
   function init() {
     scanTargets();
-    detectScope();
+    detectContext();
     createAllBadges();
     createPanel();
     createScrollTop();
@@ -42,6 +45,23 @@
   }
 
   function getAnnotationScope(a) { return a.scope || 'global'; }
+  function getAnnotationPage(a) { return a.page || 'all'; }
+
+  function detectContext() {
+    activePage = 'global';
+    var activeView = document.querySelector('.view.active');
+    if (activeView) {
+      if (activeView.id === 'login-view') activePage = 'login';
+      else if (activeView.id === 'detail-view') activePage = 'detail';
+      else if (activeView.id === 'list-view') {
+        if (activeView.classList.contains('yy-search-mode')) activePage = 'search';
+        else activePage = 'home';
+      } else {
+        activePage = (activeView.id || 'global').replace(/-view$/, '');
+      }
+    }
+    detectScope();
+  }
 
   function detectScope() {
     var masks = [
@@ -57,15 +77,26 @@
     activeScope = (tabApp && tabApp.classList.contains('active')) ? 'applications' : 'customers';
   }
 
-  // V1.1.7: 过滤已删除 + scope
-  function isAnnotationVisible(a) {
+  // V1.1.8: page + scope 双层上下文过滤
+  function isAnnotationInContext(a) {
     if (deletedIds[a.id]) return false;
+    var p = getAnnotationPage(a);
     var s = getAnnotationScope(a);
-    return s === 'global' || s === activeScope;
+    var pageMatches = activePage === 'global' || p === 'all' || p === 'global' || p === activePage || (activePage === 'home' && p === 'list');
+    var scopeMatches = s === 'global' || s === activeScope;
+    return pageMatches && scopeMatches;
   }
 
-  function getVisibleAnnotations() {
-    return ANNOTATIONS.filter(function (a) { return isAnnotationVisible(a); });
+  function targetHasLayout(target) {
+    if (!target || !target.isConnected) return false;
+    var r = target.getBoundingClientRect();
+    return r.width > 0 && r.height > 0;
+  }
+
+  function getDisplayedAnnotations() {
+    return ANNOTATIONS.filter(function (a) {
+      return isAnnotationInContext(a) && targetHasLayout(targets[a.id]);
+    });
   }
 
   // ============================================================
@@ -74,23 +105,19 @@
   function createAllBadges() { ANNOTATIONS.forEach(function (a) { createBadge(a); }); }
 
   function createBadge(a) {
-    var va = getVisibleAnnotations();
-    var pi = -1;
-    for (var i = 0; i < va.length; i++) { if (va[i].id === a.id) { pi = i + 1; break; } }
-
     var b = document.createElement('span');
     b.className = 'am-badge';
     b.setAttribute('data-annotation-id', a.id);
 
     var num = document.createElement('span');
     num.className = 'am-num';
-    num.textContent = pi > 0 ? pi : '';
+    num.textContent = '';
     b.appendChild(num);
 
     var t = document.createElement('span');
     t.className = 'am-tooltip';
     t.innerHTML = '<span class="am-close" title="关闭">&times;</span>' +
-      '<span class="am-tooltip-id">#' + (pi > 0 ? pi : '?') + '</span>' +
+      '<span class="am-tooltip-id">#?</span>' +
       '<span class="am-tooltip-body">' + escapeHTML(getContent(a)) + '</span>';
     b.appendChild(t);
     b.style.display = 'none';
@@ -106,7 +133,7 @@
     if (!tip) return;
     var body = tip.querySelector('.am-tooltip-body');
     if (body) body.innerHTML = escapeHTML(getContent(a));
-    var va = getVisibleAnnotations();
+    var va = getDisplayedAnnotations();
     var pi = -1;
     for (var i = 0; i < va.length; i++) { if (va[i].id === a.id) { pi = i + 1; break; } }
     var num = b.querySelector('.am-num');
@@ -135,22 +162,24 @@
   }
 
   // ============================================================
-  // scope 可见性 + 编号重算
+  // page/scope 可见性 + 当前页面连续编号
   // ============================================================
   function updateVisibility() {
-    detectScope();
+    detectContext();
     ANNOTATIONS.forEach(function (a) {
       var b = badges[a.id]; if (!b) return;
       var t = targets[a.id];
-      if (!t || !isAnnotationVisible(a)) { b.style.display = 'none'; return; }
-      var r = t.getBoundingClientRect();
-      b.style.display = (r.width > 0 || r.height > 0) ? '' : 'none';
+      var show = isAnnotationInContext(a) && targetHasLayout(t);
+      b.style.display = show ? '' : 'none';
+      if (!show) {
+        var hiddenNum = b.querySelector('.am-num');
+        if (hiddenNum) hiddenNum.textContent = '';
+      }
     });
-    // 刷新所有角标编号和 tooltip
-    var va = getVisibleAnnotations();
+    var va = getDisplayedAnnotations();
     va.forEach(function (a, idx) {
       var b = badges[a.id];
-      if (b && b.style.display !== 'none') {
+      if (b) {
         var num = b.querySelector('.am-num');
         if (num) num.textContent = idx + 1;
         var tid = b.querySelector('.am-tooltip-id');
@@ -211,7 +240,7 @@
   }
 
   // ============================================================
-  // ★ V1.1.7: 面板（含编辑/删除按钮）
+  // ★ V1.1.8: 稳定面板（编辑期间不重建 DOM）
   // ============================================================
   function createPanel() {
     var d = document.createElement('div');
@@ -222,21 +251,34 @@
     document.getElementById('am-overlay-bg').addEventListener('click', closePanel);
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closePanel(); });
   }
-  function openPanel() { document.getElementById('am-panel').classList.add('open'); document.getElementById('am-panel-toggle').classList.add('open'); document.getElementById('am-panel-toggle').innerHTML = '✕'; document.getElementById('am-overlay-bg').classList.add('visible'); refreshPanel(); }
+  function openPanel() { document.getElementById('am-panel').classList.add('open'); document.getElementById('am-panel-toggle').classList.add('open'); document.getElementById('am-panel-toggle').innerHTML = '✕'; document.getElementById('am-overlay-bg').classList.add('visible'); refreshPanel(true); }
   function closePanel() { document.getElementById('am-panel').classList.remove('open'); document.getElementById('am-panel-toggle').classList.remove('open'); document.getElementById('am-panel-toggle').innerHTML = '📋'; document.getElementById('am-overlay-bg').classList.remove('visible'); }
 
-  // V1.1.7: 面板项带编辑/删除按钮
-  function refreshPanel() {
+  function getContextLabel() {
+    var pages = { 'login': '登录页', 'home': '商城首页', 'search': '查询结果页', 'detail': '商品详情页' };
+    var scopes = { 'customers': '客户账号管理', 'applications': '开户申请审核', 'drawer-customer': '新增/编辑抽屉', 'drawer-review': '审核抽屉', 'modal-confirm': '确认弹窗', 'modal-reject': '驳回弹窗', 'modal-created': '创建成功弹窗', 'modal-password': '重置密码弹窗' };
+    if (activePage !== 'global') return pages[activePage] || activePage;
+    return scopes[activeScope] || activeScope;
+  }
+
+  function buildPanelSignature(annotations, label) {
+    return label + '|' + annotations.map(function (a) {
+      var b = badges[a.id], done = b && b.classList.contains('done') ? '1' : '0';
+      return a.id + ':' + done + ':' + getContent(a);
+    }).join('|');
+  }
+
+  function refreshPanel(force) {
     var l = document.getElementById('am-panel-list'), c = document.getElementById('am-panel-count'), lb = document.getElementById('am-panel-page-label');
     if (!l || !c) return;
-    var sn = { 'customers': '客户账号管理', 'applications': '开户申请审核', 'drawer-customer': '新增/编辑抽屉', 'drawer-review': '审核抽屉', 'modal-confirm': '确认弹窗', 'modal-reject': '驳回弹窗', 'modal-created': '创建成功弹窗', 'modal-password': '重置密码弹窗' };
-    lb.textContent = sn[activeScope] || activeScope;
-    var va = getVisibleAnnotations().filter(function (a) {
-      var b = badges[a.id], t = targets[a.id];
-      if (!b || b.style.display === 'none' || !t) return false;
-      return t.getBoundingClientRect().width > 0;
-    });
+    var label = getContextLabel();
+    var va = getDisplayedAnnotations();
+    var signature = buildPanelSignature(va, label);
+    lb.textContent = label;
     c.textContent = va.length + ' 条';
+    if (!force && signature === panelRenderSignature) return;
+    panelRenderSignature = signature;
+    var previousScrollTop = l.scrollTop;
     l.innerHTML = va.map(function (a, idx) {
       var di = idx + 1, b = badges[a.id], done = b && b.classList.contains('done');
       var sd = done ? '<span class="am-status-dot done" title="已完成">●</span>' : '<span class="am-status-dot" title="未处理">●</span>';
@@ -276,9 +318,10 @@
         closePanel();
       });
     });
+    l.scrollTop = previousScrollTop;
   }
 
-  // V1.1.7: 简易编辑
+  // V1.1.8: 编辑期间保留 textarea 节点
   function startEdit(id) {
     var aid = parseInt(id);
     var item = document.querySelector('.am-panel-item[data-annotation-id="' + id + '"]');
@@ -290,6 +333,7 @@
     for (var i = 0; i < ANNOTATIONS.length; i++) { if (ANNOTATIONS[i].id === aid) { a = ANNOTATIONS[i]; break; } }
     if (!a) return;
 
+    editingId = aid;
     var oldHTML = contentDiv.innerHTML;
     var currentText = getContent(a);
     contentDiv.innerHTML = '<div class="am-edit-wrap"><textarea class="am-edit-ta">' + escapeHTML(currentText) + '</textarea>' +
@@ -301,15 +345,17 @@
     contentDiv.querySelector('.am-edit-save').addEventListener('click', function (e) {
       e.stopPropagation();
       editedContent[aid] = ta.value;
+      editingId = null;
       refreshBadgeTooltip(a);
-      refreshPanel();
+      refreshPanel(true);
     });
     contentDiv.querySelector('.am-edit-cancel').addEventListener('click', function (e) {
       e.stopPropagation();
+      editingId = null;
       contentDiv.innerHTML = oldHTML;
     });
     ta.addEventListener('keydown', function (e) {
-      if (e.key === 'Escape') { contentDiv.innerHTML = oldHTML; }
+      if (e.key === 'Escape') { editingId = null; contentDiv.innerHTML = oldHTML; }
     });
   }
 
@@ -354,32 +400,58 @@
   // ============================================================
   // 追踪
   // ============================================================
+  function isAnnotationUiNode(node) {
+    if (!node || node.nodeType !== 1) return false;
+    if ((node.id || '').indexOf('am-') === 0) return true;
+    return !!(node.closest && node.closest('#am-panel, #am-overlay-bg, .am-badge, #am-panel-toggle, #am-scroll-top'));
+  }
+
+  function nodeContainsAnnotationTarget(node) {
+    if (!node || node.nodeType !== 1 || isAnnotationUiNode(node)) return false;
+    if (node.matches && node.matches('[data-am-target]')) return true;
+    return !!(node.querySelector && node.querySelector('[data-am-target]'));
+  }
+
+  function mutationTouchesTargets(mutation) {
+    if (isAnnotationUiNode(mutation.target)) return false;
+    if (mutation.type === 'childList') {
+      var changed = Array.prototype.slice.call(mutation.addedNodes).concat(Array.prototype.slice.call(mutation.removedNodes));
+      return changed.some(function (node) { return nodeContainsAnnotationTarget(node); });
+    }
+    if (mutation.type === 'attributes') {
+      var el = mutation.target;
+      if (!el || !el.matches) return false;
+      return el.matches('[data-am-target], .view, #list-view, .mask, .drawer, .modal, .page-tab, .page-tabs, [id*="Mask"], [id*="Tab"]');
+    }
+    return false;
+  }
+
   function startTracking() {
     window.addEventListener('scroll', onUpdate, { passive: true });
     window.addEventListener('resize', onUpdate, { passive: true });
     document.addEventListener('scroll', onUpdate, { passive: true, capture: true });
     bindScrollAncestors();
-    var obs = new MutationObserver(function (ms) {
-      var scopeChanged = false;
-      ms.forEach(function (m) {
-        if (m.type === 'childList' || m.type === 'subtree') { scanTargets(); scheduleUpdate(); }
-        if (m.type === 'attributes' && (m.attributeName === 'class' || m.attributeName === 'style')) {
-          var id = m.target.id || '';
-          if (id.indexOf('Mask') >= 0 || id.indexOf('Tab') >= 0) scopeChanged = true;
-          scheduleUpdate();
-        }
+    var obs = new MutationObserver(function (mutations) {
+      var needsRescan = false, needsUpdate = false;
+      mutations.forEach(function (mutation) {
+        if (!mutationTouchesTargets(mutation)) return;
+        needsUpdate = true;
+        if (mutation.type === 'childList' || mutation.attributeName === 'data-am-target') needsRescan = true;
       });
-      if (scopeChanged) setTimeout(function () { updateVisibility(); }, 100);
+      if (needsRescan) {
+        scanTargets();
+        bindScrollAncestors();
+        scheduleUpdate();
+      } else if (needsUpdate) {
+        scheduleUpdate();
+      }
     });
-    document.querySelectorAll('.mask, .drawer, .modal, .page-tab, .page-tabs, .table-wrap, .drawer-body').forEach(function (v) {
-      obs.observe(v, { attributes: true, attributeFilter: ['class', 'style'], childList: true, subtree: true });
-    });
-    obs.observe(document.body, { attributes: true, attributeFilter: ['class'], childList: true, subtree: false });
+    obs.observe(document.body, { attributes: true, attributeFilter: ['class', 'style', 'data-am-target'], childList: true, subtree: true });
     var origSwitch = window.switchPage;
-    if (origSwitch) { window.switchPage = function () { origSwitch.apply(this, arguments); setTimeout(function () { updateVisibility(); }, 150); }; }
+    if (origSwitch) { window.switchPage = function () { origSwitch.apply(this, arguments); setTimeout(scheduleUpdate, 150); }; }
     ['openDrawer', 'openReview', 'closeReview', 'closeCreated', 'closePassword', 'closeConfirm', 'closeRejectModal', 'tryCloseDrawer'].forEach(function (fn) {
       var orig = window[fn];
-      if (typeof orig === 'function') { window[fn] = function () { orig.apply(this, arguments); setTimeout(function () { updateVisibility(); }, 150); }; }
+      if (typeof orig === 'function') { window[fn] = function () { orig.apply(this, arguments); setTimeout(scheduleUpdate, 150); }; }
     });
   }
 
@@ -405,9 +477,9 @@
   function escapeHTML(s) { var d = document.createElement('div'); d.textContent = s != null ? s : ''; return d.innerHTML; }
 
   function logReady() {
-    console.log('%c📋 标注大师 1.1.7 %c已就绪 | %c' + ANNOTATIONS.length + ' 条标注 | 删除/编辑(刷新恢复)', 'font-weight:bold;', '', 'color:#FF4D4F;font-weight:bold;');
-    console.log('%c💡 面板✏️编辑 🗑删除 | hover智能定位 | scope隔离', 'color:#999;font-size:12px;');
-    console.log('%c📍 scope:' + activeScope + ' | 可见:' + getVisibleAnnotations().length + ' 条', 'color:#1890FF;');
+    console.log('%c📋 标注大师 1.1.8 %c已就绪 | %c' + ANNOTATIONS.length + ' 条标注 | 稳定编辑+动态页面重扫', 'font-weight:bold;', '', 'color:#FF4D4F;font-weight:bold;');
+    console.log('%c💡 面板✏️编辑 🗑删除 | page/scope隔离 | 当前页面连续编号', 'color:#999;font-size:12px;');
+    console.log('%c📍 page:' + activePage + ' | scope:' + activeScope + ' | 可见:' + getDisplayedAnnotations().length + ' 条', 'color:#1890FF;');
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);

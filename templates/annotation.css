@@ -1,4 +1,4 @@
-/* 标注大师 1.1.5 — 智能tooltip定位(防截断) + scope隔离 */
+/* 标注大师 1.1.8 — 稳定编辑抽屉 + 动态页面重扫 + scope隔离 */
 /* tooltip 用 opacity:0 替代 visibility:hidden，保留可测量性 */
 
 /* === 角标 === */
@@ -34,37 +34,36 @@
 #am-panel-toggle{position:fixed;bottom:24px;right:24px;width:48px;height:48px;background:#FF4D4F;color:#fff;border-radius:50%;font-size:20px;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:100002;box-shadow:0 4px 14px rgba(255,77,79,0.4);border:none;outline:none;transition:transform 0.2s ease,background 0.2s ease;line-height:1;padding:0}
 #am-panel-toggle:hover{transform:scale(1.1)}
 #am-panel-toggle.open{background:#333;box-shadow:0 4px 14px rgba(0,0,0,0.3)}
-#am-panel{position:fixed;top:0;right:0;width:380px;max-width:90vw;height:100vh;height:100dvh;background:#fff;box-shadow:-4px 0 24px rgba(0,0,0,0.12);z-index:100003;transform:translateX(100%);transition:transform 0.3s cubic-bezier(0.4,0,0.2,1);display:flex;flex-direction:column;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif}
+#am-panel{position:fixed;top:0;right:0;width:420px;max-width:92vw;height:100vh;height:100dvh;background:#fff;box-shadow:-4px 0 24px rgba(0,0,0,0.12);z-index:100003;transform:translateX(100%);transition:transform 0.3s cubic-bezier(0.4,0,0.2,1);display:flex;flex-direction:column;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;box-sizing:border-box}
 #am-panel.open{transform:translateX(0)}
-#am-panel-header{padding:20px 24px 16px;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+#am-panel-header{padding:20px 24px 16px;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;justify-content:space-between;gap:12px;min-width:0;flex-shrink:0;box-sizing:border-box}
 #am-panel-header h3{margin:0;font-size:16px;font-weight:600;color:#333}
 #am-panel-count{background:#FF4D4F;color:#fff;border-radius:10px;padding:2px 10px;font-size:12px;font-weight:600}
 #am-panel-page-label{font-size:12px;color:#999;margin-left:8px}
-.am-panel-item .am-item-content{font-size:13px;color:#333;margin-top:4px;line-height:1.5;white-space:pre-line}
-/* V1.1.7: 面板编辑/删除按钮 */
-.am-item-top{display:flex;align-items:center;gap:6px}
+#am-panel-list{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding:0 24px;overscroll-behavior:contain;box-sizing:border-box}
+.am-panel-item .am-item-content{max-width:100%;min-width:0;font-size:13px;color:#333;margin-top:8px;line-height:1.65;white-space:pre-wrap;word-break:break-word;overflow-wrap:anywhere}
+/* V1.1.8: 稳定编辑/删除区域 */
+.am-item-top{display:flex;align-items:center;gap:6px;min-width:0}
 .am-item-location{font-size:12px;color:#999;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .am-item-actions{display:flex;gap:4px;flex-shrink:0}
 .am-btn-edit,.am-btn-del{width:26px;height:26px;border:1px solid #e8e8e8;border-radius:6px;background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;padding:0;line-height:1;transition:.15s}
 .am-btn-edit:hover{background:#edf5ff;border-color:#91c2ff}
 .am-btn-del:hover{background:#fff1f3;border-color:#ffb8bf}
-/* 编辑区 — 8px安全边距 */
-.am-edit-wrap{margin:8px 0 0;padding:0;display:flex;flex-direction:column;gap:8px}
-.am-edit-ta{width:100%;min-height:60px;max-height:200px;border:1px solid #c8d2e6;border-radius:6px;padding:8px 10px;font-size:12px;line-height:1.6;resize:vertical;font-family:inherit;outline:none;white-space:pre-wrap;overflow-y:auto;box-sizing:border-box}
-.am-edit-ta:focus{border-color:#6882f4;box-shadow:0 0 0 3px rgba(77,97,243,.08)}
+/* 编辑区 */
+.am-edit-wrap{width:100%;min-width:0;margin:8px 0 0;padding:0;display:flex;flex-direction:column;gap:10px;cursor:default}
+.am-edit-ta{display:block;width:100%;min-height:96px;max-height:180px;border:1px solid #c8d2e6;border-radius:8px;background:#fbfcff;color:#26344d;padding:11px 12px;font-size:13px;line-height:1.65;resize:vertical;font-family:inherit;outline:none;white-space:pre-wrap;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;touch-action:auto;cursor:text;box-sizing:border-box}
+.am-edit-ta:focus{background:#fff;border-color:#6882f4;box-shadow:0 0 0 3px rgba(77,97,243,.10)}
 .am-edit-btns{display:flex;gap:6px;justify-content:flex-end}
 .am-edit-save{height:28px;padding:0 14px;border-radius:6px;background:#4d61f3;color:#fff;border:0;cursor:pointer;font-size:12px;font-weight:500}
 .am-edit-cancel{height:28px;padding:0 14px;border-radius:6px;background:#fff;color:#5e6b87;border:1px solid #d5dcec;cursor:pointer;font-size:12px}
-.am-panel-item{padding:14px 0;border-bottom:1px solid #f5f5f5;cursor:pointer;transition:background 0.15s ease}
+.am-panel-item{width:100%;min-width:0;padding:14px 0;border-bottom:1px solid #f5f5f5;cursor:pointer;transition:background 0.15s ease;box-sizing:border-box;overflow:hidden}
 .am-panel-item:last-child{border-bottom:none}
-.am-panel-item:hover{background:#fafafa;margin:0 -24px;padding:14px 24px}
+.am-panel-item:hover{background:#fafafa}
+.am-panel-item:has(.am-edit-wrap){cursor:default}
 .am-panel-item .am-item-id{display:inline-block;background:#FF4D4F;color:#fff;border-radius:3px;padding:2px 8px;font-size:11px;font-weight:700;margin-right:8px;vertical-align:middle;flex-shrink:0}
 .am-panel-item.done .am-item-id{background:#19AD68}
 .am-status-dot{font-size:10px;margin-right:6px;color:#FF4D4F;flex-shrink:0}
 .am-status-dot.done{color:#19AD68}
-.am-status-dot{font-size:10px;margin-right:6px;color:#FF4D4F;flex-shrink:0}
-.am-status-dot.done{color:#19AD68}
-.am-panel-item .am-item-content{font-size:13px;color:#333;margin-top:4px;line-height:1.5;white-space:pre-line}
 #am-overlay-bg{position:fixed;inset:0;background:rgba(0,0,0,0.25);z-index:100001;opacity:0;visibility:hidden;transition:opacity 0.3s ease,visibility 0.3s ease}
 #am-overlay-bg.visible{opacity:1;visibility:visible}
 #am-scroll-top{position:fixed;bottom:84px;right:28px;width:36px;height:36px;background:#fff;border-radius:50%;box-shadow:0 2px 10px rgba(0,0,0,0.12);display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:99997;font-size:16px;color:#666;opacity:0;visibility:hidden;transition:all 0.2s ease;border:1px solid #eee;line-height:1}

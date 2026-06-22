@@ -7,7 +7,7 @@
 ## 安装
 
 ```bash
-git clone https://github.com/a916791360/hermes-annotation-master.git ~/.hermes/skills/product/annotation-master
+git clone https://github.com/a916791360/Reqmark.git ~/.hermes/skills/product/annotation-master
 ```
 
 ## 使用
@@ -25,6 +25,8 @@ git clone https://github.com/a916791360/hermes-annotation-master.git ~/.hermes/s
 - **Scope 隔离** (V1.1.2) — Tab/抽屉/弹窗切换仅显示当前 scope 角标，编号自动重算
 - **宽元素左置** (V1.1.1) — >70% 视口宽元素角标自动左置，防多元素堆叠
 - **编辑 + 删除** (V1.1.7) — 清单面板每条支持修改内容和删除，角标自动重排
+- **稳定编辑抽屉** (V1.1.8) — 长文本不越界，输入和滚动不会退出编辑状态
+- **动态页面完整标注** (V1.1.8) — 首页、查询结果、详情页动态目标自动重扫并按当前页连续编号
 - **单文件输出** — CSS/JS 全部内联，浏览器直接打开
 - **PRD 驱动** — 扔文档自动映射需求到 HTML
 - **页面隔离** — 多页面原型按 view 切换角标
@@ -36,6 +38,7 @@ git clone https://github.com/a916791360/hermes-annotation-master.git ~/.hermes/s
 
 | 版本 | 关键更新 |
 |------|---------|
+| V1.1.8 | 稳定编辑抽屉 + 动态目标重扫 + 前台页面识别 + 当前页连续编号 |
 | V1.1.7 | 编辑+删除：清单面板支持修改内容和删除角标 |
 | V1.1.2 | Scope 隔离：Tab/抽屉/弹窗切换角标自动显隐 |
 | V1.1.1 | 宽元素左置 + flex 容器 `min-width:0` 修复 |

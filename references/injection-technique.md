@@ -1,10 +1,10 @@
-# 标注大师 1.0.8 — 注入技术参考
+# 标注大师 1.1.8 — 注入技术参考
 
 ## 架构概览
 
 V1.0.1+ 采用**零侵入**方案：
 - HTML 仅添加 `data-am-target="N"` 属性
-- 所有角标由 JS 动态创建在 `#am-overlay` 浮层中（`position:fixed`）
+- 所有角标由 JS 动态创建并以 `position:fixed` 直挂 `body`
 - 不修改任何样式/结构/position
 
 ## 注入流程
@@ -57,7 +57,7 @@ html = html.replace(old, new, 1)
 - `resolveCollisions()` — 碰撞检测，间距 < 26px 偏移
 - `positionTooltip()` — 四方向智能定位 + viewport clamp
 - `bindScrollAncestors()` — 直绑所有 overflow:auto/scroll 祖先
-- `startTracking()` — 三重滚动保险 + MutationObserver
+- `startTracking()` — 三重滚动保险 + 过滤式 body 子树 MutationObserver，动态目标出现后自动重扫
 - `toggleStatus()` — 双击切换 🔴↔🟢
 - `detectPage()` — `.view.active` 页面检测
 - `refreshPanel()` — 清单渲染（含状态圆点）
@@ -74,7 +74,7 @@ html = html.replace(old, new, 1)
 ```
 
 - `id`：全局唯一，对应 `data-am-target`
-- `page`：归属页面（"login"/"list"/"detail"/"admin"），用于页面隔离和独立编号
+- `page`：前台使用 `login`/`home`/`search`/`detail`；后台可使用 `admin` 并结合 scope。用于页面隔离和当前页连续编号
 - `location`：UI 区域名称（显示在清单中）
 - `content`：PRD 规则说明（显示在 tooltip 和清单中）
 
@@ -85,6 +85,8 @@ html = html.replace(old, new, 1)
 3. **抽屉/弹窗角标**：目标在 `display:none` 容器内时，`offsetParent` 为 null，角标自动隐藏。抽屉打开时 MutationObserver + scroll 触发重渲染
 4. **body{overflow:hidden}**：页面禁止 body 滚动时，需 `capture:true` + `bindScrollAncestors` 双保险捕获内部滚动
 5. **大文件**：HTML > 1MB 先用 `read_file` 读头部确认结构，用 `execute_code` + Python `open()` 做全文处理
+6. **动态页面**：目标由模板字符串或运行时脚本生成时，必须把 `data-am-target` 写入最终生成的元素；生成后走通登录、首页、查询结果和详情页，不能只检查源码 marker 数量
+7. **清单编辑**：滚动和定位更新不得无条件重建 `#am-panel-list`；使用渲染签名保留 textarea 的焦点、内容和滚动位置
 
 ## 已验证案例
 
